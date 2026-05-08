@@ -2,6 +2,10 @@
 
 **Toploader OS** is a powerful, all-in-one desktop dashboard designed specifically for Trading Card Game (TCG) sellers and WhatNot streamers. Built with Python and CustomTkinter, it automates the most tedious parts of selling: calculating complex platform fees, optimizing break margins, managing dynamic inventory, and generating bulk-upload CSVs.
 
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-darkgreen.svg)
+![Scryfall](https://img.shields.io/badge/API-Scryfall-purple.svg)
+
 ---
 
 ## ✨ Key Features
@@ -25,14 +29,6 @@ If you just want to use the application for your streams, you do not need to dow
 4. Double-click to run and start optimizing your streams!
 
 ---
-
-## 💻 For Developers (Building from Source)
-
-If you wish to run the raw Python code or compile the `.exe` yourself:
-
-**Prerequisites:**
-* Python 3.10+
-* Required libraries: `customtkinter`, `requests`, `Pillow`
 
 ⚖️ Legal & Attributions
 Intellectual Property
