@@ -30,19 +30,20 @@ If you just want to use the application for your streams, you do not need to dow
 
 ---
 
-⚖️ Legal & Attributions
-Intellectual Property
+## ⚖️ Legal & Attributions
+
+### Intellectual Property
 Toploader OS acts as a third-party tool and interfaces with external APIs (Scryfall). Toploader OS is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
 
-Third-Party Assets
+### Third-Party Assets
 UI Icons provided by Icons8.
 
 Card data and imagery provided by the Scryfall API.
 
-License
+### License
 This compiled software is provided as proprietary freeware. You may download and use the application for personal and commercial business use. You may not modify, decompile, sub-license, or sell this software. See the LICENSE.txt file for full terms and conditions.
 
-💖 Acknowledgements
+### 💖 Acknowledgements
 Created by Magic Sausage.
 
 A massive thank you to the open-source Python community, the incredible team at Scryfall, and all the GitHub supporters who helped make this project a reality!
