@@ -14,7 +14,7 @@ workspace for binders, decks, set tracking, wishlists and trades.
 <!-- Replace these with real badges/links once published -->
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![Built with](https://img.shields.io/badge/built%20with-Python%20%2B%20Qt%20(PySide6)-3776AB)
-![Status](https://img.shields.io/badge/release-v1.4.9-brightgreen)
+![Status](https://img.shields.io/badge/release-v1.5.0-brightgreen)
 
 ---
 
