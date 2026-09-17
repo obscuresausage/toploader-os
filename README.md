@@ -315,36 +315,6 @@ cache and settings data are stored on your device.
 
 ---
 
-## Building from source
-
-The Windows and macOS releases are produced with
-[PyInstaller](https://pyinstaller.org/) in one-folder mode.
-
-```bash
-# 1. Create and activate a virtual environment (Python 3.11 or 3.12)
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # macOS
-
-# 2. Install dependencies, including the Camera Card Scanner's
-pip install -r requirements-release.txt
-
-# 3. Run the app from source
-python app.py
-
-# 4. Build the distributable folder
-pyinstaller Toploader_OS.spec --noconfirm --clean
-# → dist/Toploader OS/Toploader OS.exe  (+ _internal/)
-```
-
-Windows: `build_release_windows.ps1` automates the steps above and can also
-produce a portable zip (`-CreateZip`) or an Inno Setup installer
-(`-CreateInstaller`, requires [Inno Setup](https://jrsoftware.org/isinfo.php)).
-macOS: `build_release_macos.sh` does the equivalent, producing a signed `.app`
-and DMG.
-
----
-
 ## Tech stack
 
 - **Python 3.11 / 3.12**
