@@ -1,0 +1,149 @@
+name: Update Scanner Index
+
+# Refreshes the standalone camera-scanner perceptual-hash index and
+# publishes it as assets on the "scanner-index" release on THIS (public)
+# repo. Toploader OS installs check that release once a day and
+# download/merge any newer version automatically -- unauthenticated, so it
+# has to live here, not on the private source repo.
+#
+# The source this actually runs (build_scanner_index.py + the two modules
+# it imports) lives in the private toploader-os-private repo, never here --
+# pulled in fresh each run via a read-only checkout below, used only for
+# the duration of the job, never committed or exposed as an artifact.
+# Requires a repo secret PRIVATE_REPO_TOKEN: a token with read-only
+# Contents access to obscuresausage/toploader-os-private (a fine-grained
+# PAT scoped to just that one repo is the minimal safe choice).
+#
+# Run this manually whenever a new Magic set fully releases. It's also
+# scheduled monthly as a safety net in case a run gets forgotten -- remove
+# the `schedule` trigger below if you'd rather keep this fully manual.
+#
+# Incremental by design (see build_scanner_index.py's own docstring): only
+# cards that are new or have changed art since the last run get
+# downloaded/hashed. The Scryfall cache database that makes that possible
+# is persisted between runs via actions/cache, so only the very first run
+# ever (or a cache eviction after 7 days of no runs) pays for a full
+# ~120k-card build -- expect that one to take a while and possibly need a
+# re-run or two to finish inside the 6-hour job limit. Every run after that
+# should be the "couple of minutes" case the script describes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Cap how many cards to hash this run (0 = no cap). Handy for a quick test pass.'
+        required: false
+        type: string
+        default: '0'
+      dry_run:
+        description: 'Build and verify the index, but skip publishing it to the GitHub Release.'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # 06:00 UTC on the 1st of every month.
+    - cron: '0 6 1 * *'
+
+permissions:
+  contents: write
+
+jobs:
+  update-scanner-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      # This repo's own content (README/License) isn't needed for anything
+      # here, so there's no plain actions/checkout@v4 of "self" -- only the
+      # private-source checkout below.
+      - name: Check out private source (read-only, this job only)
+        uses: actions/checkout@v4
+        with:
+          repository: obscuresausage/toploader-os-private
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: private-src
+          sparse-checkout: |
+            build_scanner_index.py
+            collector_logic.py
+            scanner_logic.py
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Keyed by run id so a fresh entry always saves at the end of this
+      # job; restore-keys falls back to the most recent previous run's
+      # cache. This is what makes card-hashing incremental across runs --
+      # without it, every run would start from an empty Scryfall cache and
+      # re-hash the entire card pool instead of just what's new.
+      - name: Restore Scryfall/index cache
+        uses: actions/cache@v4
+        with:
+          path: ~/scanner-index-cache
+          key: scanner-index-cache-${{ github.run_id }}
+          restore-keys: |
+            scanner-index-cache-
+
+      - name: Install dependencies
+        run: |
+          mkdir -p ~/scanner-index-cache
+          python -m pip install --upgrade pip
+          python -m pip install "requests>=2.32,<3" "Pillow>=10,<13" "numpy>=1.26,<3" "imagehash>=4.3,<5"
+
+      # build_scanner_index.py deliberately refuses to run against a --db
+      # path that doesn't exist yet (a safety check for its original
+      # "point it at your own real install" use case) -- on the very first
+      # run ever (nothing restored from cache), that path genuinely won't
+      # exist, so bootstrap an empty one the same way a brand new Toploader
+      # OS install would. A no-op once the cache is warm on later runs.
+      - name: Ensure Scryfall cache database exists
+        working-directory: private-src
+        run: |
+          python -c "
+          from collector_logic import CollectorDataManager
+          CollectorDataManager(r'$HOME/scanner-index-cache/collector.sqlite', user_agent='ToploaderOS-ScannerIndexer/1.0').close()
+          "
+
+      - name: Build index
+        working-directory: private-src
+        run: |
+          LIMIT="${{ inputs.limit || '0' }}"
+          python build_scanner_index.py \
+            --db "$HOME/scanner-index-cache/collector.sqlite" \
+            --out "$GITHUB_WORKSPACE/scanner_index_build" \
+            --limit "$LIMIT"
+
+      - name: Verify build output
+        run: |
+          for f in scanner_index_build/manifest.json scanner_index_build/prebuilt_hash_index.sqlite; do
+            if [ ! -s "$f" ]; then
+              echo "::error::Missing or empty build output: $f"
+              exit 1
+            fi
+          done
+          cat scanner_index_build/manifest.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the scanner-index release
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view scanner-index --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "No existing scanner-index release -- creating it."
+            gh release create scanner-index \
+              --repo "${{ github.repository }}" \
+              --title "Scanner Index" \
+              --notes "Auto-published prebuilt card-hash index for the camera scanner. Not an app version -- built from the private source repo, see the update-scanner-index workflow." \
+              --prerelease
+          fi
+          gh release upload scanner-index \
+            scanner_index_build/manifest.json \
+            scanner_index_build/prebuilt_hash_index.sqlite \
+            --repo "${{ github.repository }}" \
+            --clobber
+
+      - name: Skipped publishing (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: echo "dry_run was set -- built and verified the index but did not publish it."
