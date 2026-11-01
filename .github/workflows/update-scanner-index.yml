@@ -117,7 +117,7 @@ jobs:
 
       - name: Verify build output
         run: |
-          for f in scanner_index_build/manifest.json scanner_index_build/prebuilt_hash_index.sqlite; do
+          for f in scanner_index_build/manifest.json scanner_index_build/prebuilt_hash_index.sqlite scanner_index_build/card_catalog.tsv.gz; do
             if [ ! -s "$f" ]; then
               echo "::error::Missing or empty build output: $f"
               exit 1
@@ -138,9 +138,15 @@ jobs:
               --notes "Auto-published prebuilt card-hash index for the camera scanner. Not an app version -- built from the private source repo, see the update-scanner-index workflow." \
               --prerelease
           fi
+          # gh sends the files in one call at the same time, so the manifest
+          # gets its own call: it must never point at a file that isn't up yet.
+          gh release upload scanner-index \
+            scanner_index_build/prebuilt_hash_index.sqlite \
+            scanner_index_build/card_catalog.tsv.gz \
+            --repo "${{ github.repository }}" \
+            --clobber
           gh release upload scanner-index \
             scanner_index_build/manifest.json \
-            scanner_index_build/prebuilt_hash_index.sqlite \
             --repo "${{ github.repository }}" \
             --clobber
 
